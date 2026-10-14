@@ -10,14 +10,14 @@
 <style>
 /* Layout: one narrow reading column. Search on top, one song card per match, singers as a plain list under the Kannada first line. */
 :root {
-  --bg: #eef1ea;          /* ash with a green bias */
+  --bg: #eef1ea;
   --surface: #f8faf5;
-  --ink: #17261e;         /* tulasi-black */
+  --ink: #17261e;
   --ink-soft: #52645a;
   --line: #d3dacd;
-  --accent: #2c6a4d;      /* tulasi leaf */
+  --accent: #2c6a4d;
   --accent-ink: #ffffff;
-  --mark: #ead27a;        /* gopichandana yellow, used once per card */
+  --mark: #ead27a;
   --display: "Young Serif", Georgia, serif;
   --body: "Figtree", "Noto Sans Kannada", system-ui, sans-serif;
   --kn: "Noto Serif Kannada", "Noto Sans Kannada", serif;
@@ -56,38 +56,43 @@ button.ghost { background: transparent; color: var(--accent); padding: 8px 12px;
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px 18px 16px; min-width: 0; }
 .card h2 { font-family: var(--display); font-weight: 400; font-size: 24px; line-height: 1.2; margin: 0 0 2px; text-wrap: balance; }
 .meta { color: var(--ink-soft); font-size: 14px; margin: 0; }
-.kn { font-family: var(--kn); font-weight: 500; font-size: 20px; margin: 12px 0 4px; background: linear-gradient(transparent 62%, color-mix(in srgb, var(--mark) 55%, transparent) 62%); display: inline; padding: 0 2px; }
 .count { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); margin: 18px 0 4px; }
 ul.singers { list-style: none; margin: 0; padding: 0; }
 ul.singers li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
 ul.singers li:first-child { border-top: 0; }
 .name { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
-.name small { font-weight: 400; color: var(--ink-soft); margin-left: 6px; font-size: 12px; }
+.name small { display: block; font-weight: 400; color: var(--ink-soft); margin: 2px 0 0; font-size: 12px; }
 a.play { color: var(--accent); font-weight: 600; text-decoration: none; border-bottom: 1.5px solid currentColor; white-space: nowrap; }
 .card-foot { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
-details { margin-top: 12px; }
-summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 14px; }
-.add { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-.add input { flex: 1 1 160px; min-width: 0; font: inherit; font-size: 15px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
-.msg { font-size: 13px; color: var(--ink-soft); margin: 6px 0 0; width: 100%; }
 .empty { border: 1.5px dashed var(--line); border-radius: 8px; padding: 20px 18px; color: var(--ink-soft); }
+.empty p { margin: 0 0 8px; }
 .empty a { color: var(--accent); font-weight: 600; }
 .note { font-size: 13px; color: var(--ink-soft); max-width: 60ch; margin: 0; }
-@media (prefers-reduced-motion: no-preference) { .card { animation: rise .25s ease-out; } @keyframes rise { from { opacity: .0; transform: translateY(4px); } to { opacity: 1; transform: none; } } }
-</style>
-<style>
+@media (prefers-reduced-motion: no-preference) { .card { animation: rise .25s ease-out; } @keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } } }
+
 body { margin: 0; }
-.name small { display: block; margin: 2px 0 0; }
 ul.singers li.open { flex-direction: column; align-items: stretch; }
 .row-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .player { width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 6px; background: #000; display: block; max-width: 100%; }
 .vmeta { font-size: 13px; color: var(--ink-soft); margin: 8px 0 0; overflow-wrap: anywhere; }
 .vctl { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 button.play-btn { padding: 8px 14px; font-size: 14px; }
-.status { font-size: 14px; color: var(--ink-soft); margin: 8px 0 0; }
-.status a { color: var(--accent); font-weight: 600; }
 .knh { font-family: var(--kn); font-weight: 700; font-size: .72em; color: var(--accent); margin-left: 6px; }
 .tag { font-family: var(--kn); color: var(--ink-soft); font-size: 16px; margin: 0 0 10px; }
+.spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; margin-right: 8px; vertical-align: -2px; animation: sp .8s linear infinite; }
+@keyframes sp { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+[hidden] { display: none !important; }
+.field { position: relative; flex: 1 1 220px; min-width: 0; }
+.field input { width: 100%; padding-right: 54px; }
+.mic { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; padding: 0; display: grid; place-items: center; border-radius: 50%; border: 0; background: transparent; color: var(--accent); }
+.mic[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 25%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .mic[aria-pressed="true"] { animation: none; } }
+.voice { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font-size: 13px; color: var(--ink-soft); margin-top: -8px; }
+.seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: 999px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; color: var(--ink); font-weight: 500; font-size: 13px; padding: 6px 14px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 </style>
 </head>
 <body>
@@ -96,236 +101,32 @@ button.play-btn { padding: 8px 14px; font-size: 14px; }
     <div class="eyebrow">ದೇವರನಾಮ</div>
     <h1>Sangati <span class="knh">ಸಂಗತಿ</span></h1>
     <p class="tag">ಒಂದೇ ಹಾಡು, ಹಲವು ಸಂಗತಿ</p>
-    <p class="lede">Type the first line of a song. Pick a singer and the recording plays right here.</p>
+    <p class="lede">Type or say the first line of any devaranama. Sangati finds the singers who have posted it and plays each version here.</p>
   </header>
 
   <form class="search" id="searchForm" role="search">
-    <input id="q" type="search" value="bhagyada lakshmi baramma" placeholder="e.g. krishna nee begane baro, or ಕೃಷ್ಣ ನೀ ಬೇಗನೆ ಬಾರೋ" autocomplete="off" aria-label="First line of the song">
-    <button type="submit">Find singers</button>
+    <div class="field">
+      <input id="q" type="search" placeholder="e.g. bhagyada lakshmi baramma, or ಭಾಗ್ಯದ ಲಕ್ಷ್ಮೀ ಬಾರಮ್ಮ" autocomplete="off" aria-label="First line of the song">
+      <button type="button" id="micBtn" class="mic" aria-label="Say the first line" aria-pressed="false" hidden>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/></svg>
+      </button>
+    </div>
+    <button type="submit" id="goBtn">Find singers</button>
   </form>
+  <div class="voice" id="voiceRow" hidden>
+    <div class="seg" id="langSeg" role="group" aria-label="Voice language">
+      <button type="button" id="langKn" aria-pressed="true">ಕನ್ನಡ</button>
+      <button type="button" id="langEn" aria-pressed="false">English</button>
+    </div>
+    <span id="voiceMsg" aria-live="polite"></span>
+  </div>
   <div class="chips" id="chips"><span>Try:</span></div>
 
   <section class="results" id="results" aria-live="polite"></section>
 
-  <p class="note">The recording shown for each singer is the most-viewed match YouTube returns for that song and singer. If it is the wrong one, tap “Not this one” to see the next. Singers you add are saved on this device only.</p>
+  <p class="note">Singers and recordings come from a live YouTube search. Names are read from video titles and channels, so a few can be wrong. Tap “Not this one” to see that singer's next recording.</p>
 </main>
 
-<script>
-(function () {
-  var SONGS = [
-    { id: "bhagyada", title: "Bhagyada Lakshmi Baramma", composer: "Purandaradasa", kn: "ಭಾಗ್ಯದ ಲಕ್ಷ್ಮೀ ಬಾರಮ್ಮ",
-      variants: ["bhagyada lakshmi baramma", "bhagyada laxmi baramma", "bhagyada lakshmi barama", "bhagyada lakshmee baaramma"],
-      singers: ["Bhimsen Joshi", "Vidyabhushana", "Chaya", "M. S. Subbulakshmi"] },
-    { id: "krishna", title: "Krishna Nee Begane Baro", composer: "Vyasatirtha", kn: "ಕೃಷ್ಣಾ ನೀ ಬೇಗನೆ ಬಾರೋ",
-      variants: ["krishna nee begane baro", "krishna ni begane baro", "krushna nee begane baaro", "krishna nee bega ne baaro"],
-      singers: ["M. S. Subbulakshmi", "Bhimsen Joshi", "Vidyabhushana"] },
-    { id: "jagadoddharana", title: "Jagadoddharana", composer: "Purandaradasa", kn: "ಜಗದೋದ್ಧಾರನ ಆಡಿಸಿದಳೆಶೋದೆ",
-      variants: ["jagadoddharana adisidale yashode", "jagadodharana aadisidale yeshode", "jagadoddharana aadisidhale yashode"],
-      singers: ["M. S. Subbulakshmi", "Bhimsen Joshi", "Vidyabhushana"] },
-    { id: "tamburi", title: "Tamburi Meetidava", composer: "Purandaradasa", kn: "ತಂಬೂರಿ ಮೀಟಿದವ ಭವಾಬ್ಧಿ ದಾಟಿದವ",
-      variants: ["tamburi meetidava bhavabdhi datidava", "tambooree meetidava bhavabdi daatidava", "thamburi meetidava"],
-      singers: ["Bhimsen Joshi", "Vidyabhushana"] }
-  ];
-
-  var STORE_KEY = "sangati-additions";
-  var CACHE_KEY = "sangati-lookups";
-  var added = {}, lookups = {};
-  try { added = JSON.parse(localStorage.getItem(STORE_KEY) || "{}") || {}; } catch (e) { added = {}; }
-  try { lookups = JSON.parse(localStorage.getItem(CACHE_KEY) || "{}") || {}; } catch (e) { lookups = {}; }
-  function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(added)); } catch (e) {} }
-  function saveLookups() { try { localStorage.setItem(CACHE_KEY, JSON.stringify(lookups)); } catch (e) {} }
-
-  function el(tag, props, kids) {
-    var n = document.createElement(tag);
-    Object.keys(props || {}).forEach(function (k) {
-      if (k === "text") n.textContent = props[k]; else if (k === "class") n.className = props[k]; else n.setAttribute(k, props[k]);
-    });
-    (kids || []).forEach(function (c) { if (c) n.appendChild(c); });
-    return n;
-  }
-
-  function norm(s) {
-    s = s.toLowerCase().replace(/ksh/g, "ks").replace(/x/g, "ks").replace(/w/g, "v");
-    s = s.replace(/[^a-z\s]/g, " ");
-    s = s.replace(/(aa|ah)/g, "a").replace(/(ee|ii|ie)/g, "i").replace(/(oo|uu)/g, "u");
-    s = s.replace(/([bcdgjkpstv])h/g, "$1").replace(/h/g, "");
-    s = s.replace(/(.)\1+/g, "$1");
-    return s.replace(/\s+/g, " ").trim();
-  }
-  function lev(a, b) {
-    var m = a.length, n = b.length, d = [], i, j;
-    for (i = 0; i <= m; i++) { d[i] = [i]; }
-    for (j = 1; j <= n; j++) { d[0][j] = j; }
-    for (i = 1; i <= m; i++) for (j = 1; j <= n; j++)
-      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-    return d[m][n];
-  }
-  function isKannada(s) { return /[ಀ-೿]/.test(s); }
-  function knCompact(s) { return s.replace(/[\s‌‍]/g, ""); }
-
-  function score(song, query) {
-    if (isKannada(query)) {
-      var qk = knCompact(query), sk = knCompact(song.kn);
-      return sk.indexOf(qk) !== -1 || qk.indexOf(sk) !== -1 ? 1 : 0;
-    }
-    var q = norm(query);
-    if (!q) return 0;
-    var qTokens = q.split(" "), best = 0;
-    song.variants.forEach(function (v) {
-      var nv = norm(v);
-      if (nv.replace(/ /g, "").indexOf(q.replace(/ /g, "")) !== -1) { best = Math.max(best, 1); return; }
-      var vTokens = nv.split(" "), hit = 0;
-      qTokens.forEach(function (t) {
-        var ok = vTokens.some(function (u) { return lev(t, u) <= (t.length >= 8 ? 2 : t.length >= 4 ? 1 : 0); });
-        if (ok) hit++;
-      });
-      best = Math.max(best, hit / qTokens.length);
-    });
-    return best;
-  }
-
-  function ytSearchUrl(song, singer) {
-    return "https://www.youtube.com/results?search_query=" + encodeURIComponent(song.title + " " + singer);
-  }
-  function videoIdFromUrl(u) {
-    try {
-      var x = new URL(u);
-      if (x.protocol !== "https:") return "";
-      if (x.hostname === "youtu.be") return x.pathname.slice(1, 12);
-      if (/(^|\.)youtube\.com$/.test(x.hostname)) return x.searchParams.get("v") || "";
-    } catch (e) {}
-    return "";
-  }
-  function fmtViews(n) {
-    if (n >= 1e6) return (n / 1e6).toFixed(1).replace(/\.0$/, "") + "M views";
-    if (n >= 1e3) return Math.round(n / 1e3) + "K views";
-    return n + " views";
-  }
-
-  function lookup(song, singer) {
-    var key = song.id + "|" + singer.toLowerCase();
-    if (lookups[key] && lookups[key].length) return Promise.resolve(lookups[key]);
-    return fetch("/api/find?song=" + encodeURIComponent(song.title) + "&singer=" + encodeURIComponent(singer))
-      .then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); })
-      .then(function (j) {
-        var items = j.items || [];
-        if (items.length) { lookups[key] = items; saveLookups(); }
-        return items;
-      });
-  }
-
-  function singerRow(song, r) {
-    var li = el("li", {});
-    var top = el("div", { class: "row-top" });
-    top.appendChild(el("span", { class: "name", text: r.name }, r.mine ? [el("small", { text: "added by you" })] : []));
-    var btn = el("button", { type: "button", class: "play-btn", text: "▶ Play" });
-    top.appendChild(btn);
-    li.appendChild(top);
-    var slot = el("div", {});
-    li.appendChild(slot);
-
-    function showVideo(items, idx) {
-      var it = items[idx];
-      slot.textContent = "";
-      li.className = "open";
-      var frame = el("iframe", {
-        class: "player", title: song.title + " by " + r.name,
-        src: "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(it.id) + "?autoplay=1&rel=0&playsinline=1",
-        allow: "autoplay; encrypted-media; picture-in-picture; fullscreen", allowfullscreen: "", referrerpolicy: "strict-origin-when-cross-origin"
-      });
-      var meta = (it.title ? it.title : "") + (it.channel ? " · " + it.channel : "") + (it.views ? " · " + fmtViews(it.views) : "");
-      var ctl = el("div", { class: "vctl" });
-      if (items.length > 1) {
-        var nxt = el("button", { type: "button", class: "ghost", text: "Not this one" });
-        nxt.addEventListener("click", function () { showVideo(items, (idx + 1) % items.length); });
-        ctl.appendChild(nxt);
-      }
-      var close = el("button", { type: "button", class: "ghost", text: "Close" });
-      close.addEventListener("click", function () { slot.textContent = ""; li.className = ""; btn.hidden = false; });
-      ctl.appendChild(close);
-      slot.appendChild(frame);
-      if (meta) slot.appendChild(el("p", { class: "vmeta", text: meta }));
-      slot.appendChild(ctl);
-      btn.hidden = true;
-    }
-    function fail() {
-      slot.textContent = "";
-      var p = el("p", { class: "status" }, [document.createTextNode("Couldn't find a playable recording. "),
-        el("a", { href: ytSearchUrl(song, r.name), target: "_blank", rel: "noopener noreferrer", text: "Search on YouTube ↗" })]);
-      slot.appendChild(p);
-      btn.disabled = false; btn.textContent = "▶ Play";
-    }
-
-    btn.addEventListener("click", function () {
-      if (r.videoId) { showVideo([{ id: r.videoId }], 0); return; }
-      btn.disabled = true; btn.textContent = "Finding…";
-      slot.textContent = "";
-      lookup(song, r.name).then(function (items) {
-        if (!items.length) { fail(); return; }
-        btn.disabled = false; btn.textContent = "▶ Play";
-        showVideo(items, 0);
-      }).catch(fail);
-    });
-    return li;
-  }
-
-  function card(song) {
-    var rows = song.singers.map(function (n) { return { name: n, mine: false }; });
-    (added[song.id] || []).forEach(function (a) { rows.push({ name: a.name, mine: true, videoId: a.url ? videoIdFromUrl(a.url) : "" }); });
-    var list = el("ul", { class: "singers" }, rows.map(function (r) { return singerRow(song, r); }));
-
-    var nameIn = el("input", { id: "name-" + song.id, type: "text", placeholder: "Singer name", "aria-label": "Singer name" });
-    var urlIn = el("input", { id: "url-" + song.id, type: "url", placeholder: "YouTube link (optional)", "aria-label": "YouTube link" });
-    var msg = el("p", { class: "msg", text: "" });
-    var form = el("form", { class: "add" }, [nameIn, urlIn, el("button", { type: "submit", class: "ghost", text: "Add singer" }), msg]);
-    form.addEventListener("submit", function (e) {
-      e.preventDefault();
-      var name = nameIn.value.trim(), url = urlIn.value.trim();
-      if (!name) { msg.textContent = "Enter the singer's name."; return; }
-      if (url && !videoIdFromUrl(url)) { msg.textContent = "Paste a YouTube video link, like https://youtu.be/… or https://www.youtube.com/watch?v=…"; return; }
-      (added[song.id] = added[song.id] || []).push({ name: name, url: url });
-      save();
-      show(document.getElementById("q").value);
-    });
-
-    return el("article", { class: "card" }, [
-      el("h2", { text: song.title }),
-      el("p", { class: "meta", text: song.composer }),
-      el("div", {}, [el("span", { class: "kn", text: song.kn })]),
-      el("p", { class: "count", text: rows.length + (rows.length === 1 ? " singer" : " singers") }),
-      list,
-      el("details", {}, [el("summary", { text: "Know another singer?" }), form])
-    ]);
-  }
-
-  function show(query) {
-    var box = document.getElementById("results");
-    box.textContent = "";
-    var q = query.trim();
-    if (!q) { box.appendChild(el("div", { class: "empty", text: "Type the first line of a devaranama to begin." })); return; }
-    var hits = SONGS.map(function (s) { return { s: s, v: score(s, q) }; })
-      .filter(function (h) { return h.v >= 0.6; })
-      .sort(function (a, b) { return b.v - a.v; });
-    if (!hits.length) {
-      box.appendChild(el("div", { class: "empty" }, [
-        el("p", { text: "This line isn't in the starter list yet. Try a different spelling, or one of the songs above." }),
-        el("a", { href: "https://www.youtube.com/results?search_query=" + encodeURIComponent(q + " devaranama"), target: "_blank", rel: "noopener noreferrer", text: "Search YouTube for “" + q + "” ↗" })
-      ]));
-      return;
-    }
-    hits.forEach(function (h) { box.appendChild(card(h.s)); });
-  }
-
-  var chips = document.getElementById("chips");
-  SONGS.forEach(function (s) {
-    var b = el("button", { type: "button", text: s.title });
-    b.addEventListener("click", function () { var q = document.getElementById("q"); q.value = s.variants[0]; show(q.value); });
-    chips.appendChild(b);
-  });
-  document.getElementById("searchForm").addEventListener("submit", function (e) { e.preventDefault(); show(document.getElementById("q").value); });
-  document.getElementById("q").addEventListener("input", function (e) { show(e.target.value); });
-  show(document.getElementById("q").value);
-})();
-</script>
+<script src="app.js"></script>
 </body>
 </html>
