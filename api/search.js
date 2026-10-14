@@ -24,7 +24,8 @@ export default async function handler(req, res) {
       if (reason === "quotaExceeded" || reason === "dailyLimitExceeded") {
         return res.status(429).json({ error: "Today's YouTube search limit is used up. It resets at midnight Pacific time. Songs searched before still open." });
       }
-      return res.status(502).json({ error: "YouTube search failed (" + s.status + (reason ? ", " + reason : "") + ")." });
+      const why = sj && sj.error && sj.error.message ? " " + String(sj.error.message).replace(/<[^>]*>/g, "").slice(0, 220) : "";
+      return res.status(502).json({ error: "YouTube search failed (" + s.status + (reason ? ", " + reason : "") + ")." + why });
     }
     const ids = (sj.items || []).map((i) => i.id && i.id.videoId).filter(Boolean);
     if (!ids.length) return res.status(200).json({ query: q, singers: [] });
@@ -32,7 +33,10 @@ export default async function handler(req, res) {
     const vUrl = YT + "/videos?part=statistics,snippet,contentDetails&id=" + ids.join(",") + "&key=" + key;
     const v = await fetch(vUrl);
     const vj = await v.json();
-    if (!v.ok) return res.status(502).json({ error: "YouTube lookup failed (" + v.status + ")." });
+    if (!v.ok) {
+      const why2 = vj && vj.error && vj.error.message ? " " + String(vj.error.message).replace(/<[^>]*>/g, "").slice(0, 220) : "";
+      return res.status(502).json({ error: "YouTube lookup failed (" + v.status + ")." + why2 });
+    }
 
     let videos = (vj.items || []).map((i) => ({
       id: i.id,
