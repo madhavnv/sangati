@@ -1,6 +1,6 @@
 (function () {
   var SUGGEST = ["bhagyada lakshmi baramma", "krishna nee begane baro", "jagadoddharana adisidale yashode", "tamburi meetidava"];
-  var CACHE_KEY = "sangati-search-v2", LANG_KEY = "sangati-voice-lang", TTL = 7 * 24 * 3600 * 1000;
+  var CACHE_KEY = "sangati-search-v3", LANG_KEY = "sangati-voice-lang", TTL = 7 * 24 * 3600 * 1000;
   var cache = {};
   try { cache = JSON.parse(localStorage.getItem(CACHE_KEY) || "{}") || {}; } catch (e) { cache = {}; }
   function saveCache() { try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch (e) {} }
@@ -49,7 +49,7 @@
     var k = q.toLowerCase().replace(/\s+/g, " ").trim();
     var hit = cache[k];
     if (hit && Date.now() - hit.t < TTL) return Promise.resolve(hit.data);
-    return fetch("/api/search?q=" + encodeURIComponent(q)).then(function (r) {
+    return fetch("/api/search?q=" + encodeURIComponent(q) + "&v=3").then(function (r) {
       return r.text().then(function (txt) {
         var j = {};
         try { j = JSON.parse(txt); } catch (e) {}
@@ -124,7 +124,8 @@
       ]));
       return;
     }
-    var meta = used && used !== q ? "Searched as “" + used + "”. Pick a singer to play their version." : "Pick a singer to play their version";
+    var meta = used && used !== q ? "Searched as “" + used + "”. Pick a singer to play their version." : "Pick a singer to play their version.";
+    if (data.relaxed) meta += " Showing recordings that match " + data.matched + " of your " + data.words + " words.";
     box.appendChild(el("article", { class: "card" }, [
       el("h2", { text: q }),
       el("p", { class: "meta", text: meta }),
