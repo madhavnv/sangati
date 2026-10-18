@@ -4,129 +4,278 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sangati</title>
+<meta name="description" content="Type or say the first line of a devaranama and hear it sung by many singers, all in one place.">
+<meta name="theme-color" content="#2c6a4d">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Sangati ಸಂಗತಿ">
+<meta property="og:description" content="One song, many voices. Find every singer of a devaranama and play each version in one place.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232c6a4d'/%3E%3Cg fill='%23ead27a'%3E%3Cellipse cx='32' cy='26' rx='5' ry='14' transform='rotate(-55 32 44)'/%3E%3Cellipse cx='32' cy='26' rx='5' ry='14' transform='rotate(-28 32 44)'/%3E%3Cellipse cx='32' cy='26' rx='5' ry='14'/%3E%3Cellipse cx='32' cy='26' rx='5' ry='14' transform='rotate(28 32 44)'/%3E%3Cellipse cx='32' cy='26' rx='5' ry='14' transform='rotate(55 32 44)'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600&family=Noto+Sans+Kannada:wght@400;600&family=Noto+Serif+Kannada:wght@500;700&display=swap">
+<!-- app.js adds its own voice styles only when this tag is missing, so keep it. -->
+<style id="sangati-voice-css"></style>
 <style>
-/* Layout: one narrow reading column. Search on top, one song card per match, singers as a plain list under the Kannada first line. */
+/* Layout: one narrow reading column. Hero with a tanpura, a search panel, one card per match, then a short guide and the footer. */
 :root {
   --bg: #eef1ea;
   --surface: #f8faf5;
+  --panel: #e3e9db;
   --ink: #17261e;
   --ink-soft: #52645a;
   --line: #d3dacd;
   --accent: #2c6a4d;
   --accent-ink: #ffffff;
   --mark: #ead27a;
+  --pill-ink: #3a3000;
+  --wood: #6b3f1f;
+  --gourd: #b5702f;
+  --tabli: #e9c98f;
   --display: "Young Serif", Georgia, serif;
   --body: "Figtree", "Noto Sans Kannada", system-ui, sans-serif;
   --kn: "Noto Serif Kannada", "Noto Sans Kannada", serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0f1a15; --surface: #16251d; --ink: #e5ebe1; --ink-soft: #9db1a4;
-    --line: #2a3d32; --accent: #7cc79f; --accent-ink: #0c1812; --mark: #c9ad4a;
+    --bg: #0f1a15; --surface: #16251d; --panel: #1b2e24; --ink: #e5ebe1; --ink-soft: #9db1a4;
+    --line: #2a3d32; --accent: #7cc79f; --accent-ink: #0c1812; --mark: #c9ad4a; --pill-ink: #1d1700;
+    --wood: #b98a5c; --gourd: #c98a45; --tabli: #e6c48a;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0f1a15; --surface: #16251d; --ink: #e5ebe1; --ink-soft: #9db1a4;
-  --line: #2a3d32; --accent: #7cc79f; --accent-ink: #0c1812; --mark: #c9ad4a;
+  --bg: #0f1a15; --surface: #16251d; --panel: #1b2e24; --ink: #e5ebe1; --ink-soft: #9db1a4;
+  --line: #2a3d32; --accent: #7cc79f; --accent-ink: #0c1812; --mark: #c9ad4a; --pill-ink: #1d1700;
+  --wood: #b98a5c; --gourd: #c98a45; --tabli: #e6c48a;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
 body {
-  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55;
-  padding-inline: 16px; padding-block: 28px 56px;
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55;
+  padding-inline: 16px; padding-block: 20px 40px;
 }
-main { max-width: 640px; margin-inline: auto; display: flex; flex-direction: column; gap: 24px; }
-.eyebrow { font-family: var(--kn); font-size: 15px; color: var(--accent); letter-spacing: .02em; }
-h1 { font-family: var(--display); font-weight: 400; font-size: clamp(30px, 8vw, 42px); line-height: 1.1; margin: 4px 0 8px; text-wrap: balance; }
+[hidden] { display: none !important; }
+.wrap { max-width: 680px; margin-inline: auto; display: flex; flex-direction: column; gap: 32px; }
+main { display: flex; flex-direction: column; gap: 28px; }
+
+/* top bar and hero */
+.topbar { display: flex; align-items: center; gap: 10px; }
+.topbar .label { font-family: var(--kn); font-size: 15px; color: var(--accent); letter-spacing: .02em; }
+.pill { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; background: var(--mark); color: var(--pill-ink); }
+.topbar .share { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.hero { display: grid; grid-template-columns: 1fr auto; gap: 12px 20px; align-items: center; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(32px, 9vw, 46px); line-height: 1.08; margin: 0 0 8px; text-wrap: balance; }
+.knh { font-family: var(--kn); font-weight: 700; font-size: .72em; color: var(--accent); margin-left: 6px; }
+.tag { font-family: var(--kn); color: var(--ink-soft); font-size: 17px; margin: 0 0 10px; }
 .lede { color: var(--ink-soft); margin: 0; max-width: 46ch; }
+.tanpura { width: 96px; height: auto; display: block; }
+.t-sun { fill: var(--mark); opacity: .38; }
+.t-wood { fill: var(--wood); }
+.t-gourd { fill: var(--gourd); }
+.t-tabli { fill: var(--tabli); }
+.t-bridge { fill: var(--surface); stroke: var(--wood); stroke-width: 1; }
+.t-str { stroke: var(--ink-soft); stroke-width: .9; fill: none; }
+.t-wave { stroke: var(--accent); stroke-width: 2; stroke-linecap: round; fill: none; }
+@media (min-width: 560px) { .tanpura { width: 132px; } }
+
+/* search panel */
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 form.search { display: flex; gap: 8px; flex-wrap: wrap; }
-.search input { flex: 1 1 220px; min-width: 0; font: inherit; padding: 13px 14px; border: 1.5px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.search input { font: inherit; padding: 13px 14px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); min-width: 0; }
+.field { position: relative; flex: 1 1 170px; min-width: 0; }
+.field input { width: 100%; padding-right: 54px; }
 .search input:focus-visible, button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-button { font: inherit; font-weight: 600; cursor: pointer; border-radius: 6px; padding: 13px 18px; border: 1.5px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
+button { font: inherit; font-weight: 600; cursor: pointer; border-radius: 8px; padding: 13px 18px; border: 1.5px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
+button:disabled { opacity: .6; cursor: progress; }
 button.ghost { background: transparent; color: var(--accent); padding: 8px 12px; font-size: 14px; }
+.mic { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; padding: 0; display: grid; place-items: center; border-radius: 50%; border: 0; background: transparent; color: var(--accent); }
+.mic[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 25%, transparent); } }
+.voice { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font-size: 13px; color: var(--ink-soft); }
+.seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; border-radius: 0; background: transparent; color: var(--ink); font-weight: 500; font-size: 13px; padding: 6px 14px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .chips span { font-size: 13px; color: var(--ink-soft); }
-.chips button { font-weight: 500; font-size: 14px; padding: 6px 12px; background: transparent; color: var(--ink); border-color: var(--line); border-radius: 999px; }
+.chips button { font-weight: 500; font-size: 14px; padding: 6px 12px; background: var(--surface); color: var(--ink); border-color: var(--line); border-radius: 999px; }
 .chips button:hover { border-color: var(--accent); color: var(--accent); }
+
+/* results */
 .results { display: flex; flex-direction: column; gap: 20px; }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px 18px 16px; min-width: 0; }
-.card h2 { font-family: var(--display); font-weight: 400; font-size: 24px; line-height: 1.2; margin: 0 0 2px; text-wrap: balance; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px 18px 16px; min-width: 0; box-shadow: 0 10px 26px -20px rgba(23, 38, 30, .5); }
+.card h2 { font-family: var(--display); font-weight: 400; font-size: 24px; line-height: 1.2; margin: 0 0 2px; text-wrap: balance; overflow-wrap: anywhere; }
 .meta { color: var(--ink-soft); font-size: 14px; margin: 0; }
 .count { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); margin: 18px 0 4px; }
 ul.singers { list-style: none; margin: 0; padding: 0; }
 ul.singers li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
 ul.singers li:first-child { border-top: 0; }
-.name { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
-.name small { display: block; font-weight: 400; color: var(--ink-soft); margin: 2px 0 0; font-size: 12px; }
-a.play { color: var(--accent); font-weight: 600; text-decoration: none; border-bottom: 1.5px solid currentColor; white-space: nowrap; }
-.card-foot { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
-.empty { border: 1.5px dashed var(--line); border-radius: 8px; padding: 20px 18px; color: var(--ink-soft); }
-.empty p { margin: 0 0 8px; }
-.empty a { color: var(--accent); font-weight: 600; }
-.note { font-size: 13px; color: var(--ink-soft); max-width: 60ch; margin: 0; }
-@media (prefers-reduced-motion: no-preference) { .card { animation: rise .25s ease-out; } @keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } } }
-
-body { margin: 0; }
 ul.singers li.open { flex-direction: column; align-items: stretch; }
 .row-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.player { width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 6px; background: #000; display: block; max-width: 100%; }
+.name { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.name small { display: block; font-weight: 400; color: var(--ink-soft); margin: 2px 0 0; font-size: 12px; }
+button.play-btn { padding: 8px 16px; font-size: 14px; border-radius: 999px; }
+.player { width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 10px; background: #000; display: block; max-width: 100%; box-shadow: 0 10px 24px -14px rgba(0, 0, 0, .6); }
 .vmeta { font-size: 13px; color: var(--ink-soft); margin: 8px 0 0; overflow-wrap: anywhere; }
 .vctl { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-button.play-btn { padding: 8px 14px; font-size: 14px; }
-.knh { font-family: var(--kn); font-weight: 700; font-size: .72em; color: var(--accent); margin-left: 6px; }
-.tag { font-family: var(--kn); color: var(--ink-soft); font-size: 16px; margin: 0 0 10px; }
+a.play { color: var(--accent); font-weight: 600; text-decoration: none; border-bottom: 1.5px solid currentColor; white-space: nowrap; }
+.card-foot { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.empty { border: 1.5px dashed var(--line); border-radius: 12px; padding: 20px 18px; color: var(--ink-soft); }
+.empty p { margin: 0 0 8px; }
+.empty a { color: var(--accent); font-weight: 600; }
 .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; margin-right: 8px; vertical-align: -2px; animation: sp .8s linear infinite; }
 @keyframes sp { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
-[hidden] { display: none !important; }
-.field { position: relative; flex: 1 1 220px; min-width: 0; }
-.field input { width: 100%; padding-right: 54px; }
-.mic { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; padding: 0; display: grid; place-items: center; border-radius: 50%; border: 0; background: transparent; color: var(--accent); }
-.mic[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); animation: pulse 1.2s ease-in-out infinite; }
-@keyframes pulse { 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 25%, transparent); } }
-@media (prefers-reduced-motion: reduce) { .mic[aria-pressed="true"] { animation: none; } }
-.voice { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font-size: 13px; color: var(--ink-soft); margin-top: -8px; }
-.seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: 999px; overflow: hidden; }
-.seg button { border: 0; border-radius: 0; background: transparent; color: var(--ink); font-weight: 500; font-size: 13px; padding: 6px 14px; }
-.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+@media (prefers-reduced-motion: no-preference) { .card { animation: rise .25s ease-out; } @keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } } }
+@media (prefers-reduced-motion: reduce) { .spin, .mic[aria-pressed="true"] { animation: none; } }
+
+/* guide, about, beta note, footer */
+.sec-title { font-family: var(--display); font-weight: 400; font-size: 22px; line-height: 1.2; margin: 0 0 12px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; counter-reset: st; }
+.steps li { display: flex; gap: 14px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; counter-increment: st; }
+.steps .ico { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--panel); color: var(--accent); }
+.steps .txt::before { content: "Step " counter(st); display: block; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.steps .txt strong { display: block; }
+.steps .txt span { display: block; color: var(--ink-soft); font-size: 14px; }
+@media (min-width: 620px) { .steps { grid-template-columns: repeat(3, 1fr); } .steps li { flex-direction: column; } }
+.about .lotus { width: 48px; height: auto; display: block; margin-bottom: 8px; }
+.about p { margin: 0; color: var(--ink-soft); max-width: 56ch; }
+.about em { color: var(--ink); font-style: italic; }
+.petal { fill: var(--accent); }
+.beta { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font-size: 14px; background: color-mix(in srgb, var(--mark) 22%, var(--surface)); border: 1px solid color-mix(in srgb, var(--mark) 60%, var(--line)); border-radius: 12px; padding: 12px 14px; }
+.beta p { margin: 0; flex: 1 1 220px; }
+.beta a { color: var(--accent); font-weight: 600; }
+.foot { border-top: 1px solid var(--line); padding-top: 16px; display: flex; flex-direction: column; gap: 4px; align-items: center; text-align: center; color: var(--ink-soft); font-size: 14px; }
+.foot p { margin: 0; }
+.foot strong { color: var(--ink); }
+.foot .note { font-size: 12px; opacity: .8; }
 </style>
 </head>
 <body>
+<noscript><p style="max-width:640px;margin:0 auto 16px">Sangati needs JavaScript to search. Please turn it on and reload.</p></noscript>
+<div class="wrap">
 <main>
   <header>
-    <div class="eyebrow">ದೇವರನಾಮ</div>
-    <h1>Sangati <span class="knh">ಸಂಗತಿ</span></h1>
-    <p class="tag">ಒಂದೇ ಹಾಡು, ಹಲವು ಸಂಗತಿ</p>
-    <p class="lede">Type or say the first line of any devaranama. Sangati finds the singers who have posted it and plays each version here.</p>
-  </header>
-
-  <form class="search" id="searchForm" role="search">
-    <div class="field">
-      <input id="q" type="search" placeholder="e.g. bhagyada lakshmi baramma, or ಭಾಗ್ಯದ ಲಕ್ಷ್ಮೀ ಬಾರಮ್ಮ" autocomplete="off" aria-label="First line of the song">
-      <button type="button" id="micBtn" class="mic" aria-label="Say the first line" aria-pressed="false" hidden>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/></svg>
+    <div class="topbar">
+      <span class="label">ದೇವರನಾಮ</span>
+      <span class="pill">Beta</span>
+      <button type="button" id="shareBtn" class="ghost share" aria-label="Share Sangati">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.5l6.8-4M8.6 13.5l6.8 4"/></svg>
+        Share
       </button>
     </div>
-    <button type="submit" id="goBtn">Find singers</button>
-  </form>
-  <div class="voice" id="voiceRow" hidden>
-    <div class="seg" id="langSeg" role="group" aria-label="Voice language">
-      <button type="button" id="langKn" aria-pressed="true">ಕನ್ನಡ</button>
-      <button type="button" id="langEn" aria-pressed="false">English</button>
+    <div class="hero" style="margin-top:16px">
+      <div>
+        <h1>Sangati <span class="knh">ಸಂಗತಿ</span></h1>
+        <p class="tag">ಒಂದೇ ಹಾಡು, ಹಲವು ಸಂಗತಿ</p>
+        <p class="lede">Type or say the first line of any devaranama. Sangati finds the singers who have posted it and plays each version here.</p>
+      </div>
+      <svg class="tanpura" viewBox="0 0 140 230" role="img" aria-label="A tanpura, the drone instrument that accompanies devotional singing">
+        <circle class="t-sun" cx="62" cy="120" r="76"/>
+        <rect class="t-wood" x="56" y="8" width="12" height="130" rx="4"/>
+        <rect class="t-wood" x="42" y="20" width="16" height="5" rx="2.5"/>
+        <rect class="t-wood" x="66" y="32" width="16" height="5" rx="2.5"/>
+        <rect class="t-wood" x="42" y="44" width="16" height="5" rx="2.5"/>
+        <rect class="t-wood" x="66" y="56" width="16" height="5" rx="2.5"/>
+        <circle class="t-gourd" cx="62" cy="170" r="50"/>
+        <circle class="t-tabli" cx="62" cy="170" r="36"/>
+        <path class="t-str" d="M59 12 L49 180 M61 12 L57 180 M63 12 L67 180 M65 12 L75 180"/>
+        <rect class="t-bridge" x="44" y="177" width="36" height="6" rx="2"/>
+        <path class="t-wave" d="M118 124 q9 14 0 28 M128 114 q15 24 0 48" opacity=".85"/>
+      </svg>
     </div>
-    <span id="voiceMsg" aria-live="polite"></span>
-  </div>
-  <div class="chips" id="chips"><span>Try:</span></div>
+  </header>
+
+  <section class="panel" aria-label="Search">
+    <form class="search" id="searchForm" role="search">
+      <div class="field">
+        <input id="q" type="search" placeholder="e.g. bhagyada lakshmi baramma, or ಭಾಗ್ಯದ ಲಕ್ಷ್ಮೀ ಬಾರಮ್ಮ" autocomplete="off" aria-label="First line of the song">
+        <button type="button" id="micBtn" class="mic" aria-label="Say the first line" aria-pressed="false">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/></svg>
+        </button>
+      </div>
+      <button type="submit" id="goBtn">Find singers</button>
+    </form>
+    <div class="voice" id="voiceRow">
+      <div class="seg" id="langSeg" role="group" aria-label="Voice language">
+        <button type="button" id="langKn" aria-pressed="true">ಕನ್ನಡ</button>
+        <button type="button" id="langEn" aria-pressed="false">English</button>
+      </div>
+      <span id="voiceMsg" aria-live="polite"></span>
+    </div>
+    <div class="chips" id="chips"><span>Try:</span></div>
+  </section>
 
   <section class="results" id="results" aria-live="polite"></section>
 
-  <p class="note">Singers and recordings come from a live YouTube search. Names are read from video titles and channels, so a few can be wrong. Tap “Not this one” to see that singer's next recording.</p>
+  <section class="how" aria-labelledby="how-h">
+    <h2 class="sec-title" id="how-h">How it works</h2>
+    <ol class="steps">
+      <li>
+        <span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/></svg></span>
+        <div class="txt"><strong>Say or type a line</strong><span>The first line of any devaranama, in Kannada or English letters.</span></div>
+      </li>
+      <li>
+        <span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.5 0 4.5 2 4.5 4.5"/></svg></span>
+        <div class="txt"><strong>Meet the singers</strong><span>Sangati lists every singer who has posted that song on YouTube.</span></div>
+      </li>
+      <li>
+        <span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l6 3.5-6 3.5z"/></svg></span>
+        <div class="txt"><strong>Play right here</strong><span>Tap a singer to hear their version. Not the right one? Tap “Not this one”.</span></div>
+      </li>
+    </ol>
+  </section>
+
+  <section class="about" aria-labelledby="about-h">
+    <svg class="lotus" viewBox="0 0 40 28" aria-hidden="true">
+      <g class="petal">
+        <ellipse cx="20" cy="14" rx="4.5" ry="11" transform="rotate(-60 20 25)" opacity=".4"/>
+        <ellipse cx="20" cy="14" rx="4.5" ry="11" transform="rotate(60 20 25)" opacity=".4"/>
+        <ellipse cx="20" cy="14" rx="4.5" ry="11" transform="rotate(-30 20 25)" opacity=".65"/>
+        <ellipse cx="20" cy="14" rx="4.5" ry="11" transform="rotate(30 20 25)" opacity=".65"/>
+        <ellipse cx="20" cy="14" rx="4.5" ry="11"/>
+      </g>
+    </svg>
+    <h2 class="sec-title" id="about-h">Why “Sangati”?</h2>
+    <p>In Carnatic music, a <em>sangati</em> is one line of a song sung with its own variations. The same devaranama is sung differently by every singer and every tradition. Sangati puts those voices side by side, so you can hear a song the way your guru, your family or your favourite singer sings it.</p>
+  </section>
+
+  <aside class="beta" aria-label="Beta notice">
+    <span class="pill">Beta</span>
+    <p>You are among the first to try Sangati. Search runs live on YouTube, so a few singer names may be wrong. Tell us what you find.</p>
+    <a id="feedback" href="#" target="_blank" rel="noopener noreferrer" hidden>Send feedback</a>
+  </aside>
 </main>
 
+<footer class="foot">
+  <p>Made with devotion by <strong>Madhav NV</strong></p>
+  <p class="note" id="ver"></p>
+</footer>
+</div>
+
 <script src="app.js"></script>
+<script>
+(function () {
+  // Paste a Google Form, WhatsApp or email link between the quotes to show a "Send feedback" link. Leave it empty to hide it.
+  var FEEDBACK_URL = "";
+  var fb = document.getElementById("feedback");
+  if (fb && FEEDBACK_URL) { fb.href = FEEDBACK_URL; fb.hidden = false; }
+
+  var share = document.getElementById("shareBtn");
+  if (!share) return;
+  var label = share.lastChild;
+  share.addEventListener("click", function () {
+    var data = { title: "Sangati", text: "Sangati: hear one devaranama in many voices.", url: location.href.split("#")[0] };
+    function note(msg) {
+      var old = label.textContent;
+      label.textContent = " " + msg;
+      setTimeout(function () { label.textContent = old; }, 1800);
+    }
+    if (navigator.share) { navigator.share(data).catch(function () {}); return; }
+    try {
+      navigator.clipboard.writeText(data.url).then(function () { note("Link copied"); }, function () { note("Copy the link from the address bar"); });
+    } catch (e) { note("Copy the link from the address bar"); }
+  });
+})();
+</script>
 </body>
 </html>
