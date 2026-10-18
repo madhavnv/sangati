@@ -141,7 +141,7 @@
     if (q.length < 3) { box.textContent = ""; box.appendChild(el("div", { class: "empty", text: "Type or say at least a few letters of the first line." })); return; }
     var me = ++reqNo;
     var go = document.getElementById("goBtn");
-    go.disabled = true;
+    if (go) go.disabled = true;
     box.textContent = "";
     box.appendChild(el("div", { class: "empty" }, [el("span", { class: "spin" }), document.createTextNode("Searching YouTube for singers…")]));
     searchSmart(q).then(function (res) {
@@ -155,40 +155,72 @@
         el("p", { text: msg }),
         el("a", { href: ytUrl(q), target: "_blank", rel: "noopener noreferrer", text: "Search YouTube yourself ↗" })
       ]));
-    }).then(function () { if (me === reqNo) go.disabled = false; });
+    }).then(function () { if (me === reqNo && go) go.disabled = false; });
   }
 
-  // ---- Voice input (browser speech recognition) ----
-  var input = document.getElementById("q");
-  var micBtn = document.getElementById("micBtn");
-  var voiceRow = document.getElementById("voiceRow");
-  var voiceMsg = document.getElementById("voiceMsg");
-  var langKn = document.getElementById("langKn");
-  var langEn = document.getElementById("langEn");
-  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  var lang = "kn-IN";
-  try { lang = localStorage.getItem(LANG_KEY) || "kn-IN"; } catch (e) {}
-  var rec = null, listening = false;
+  // ---- Voice input ----
+  // The mic is built here if the page does not already have one, and it is always shown.
+  var MIC_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/></svg>';
+  var VOICE_CSS = "[hidden]{display:none!important}.field{position:relative;flex:1 1 220px;min-width:0}.field input{width:100%;padding-right:54px}.mic{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:40px;height:40px;padding:0;display:grid;place-items:center;border-radius:50%;border:0;background:transparent;color:var(--accent,#2c6a4d);cursor:pointer}.mic[aria-pressed=true]{background:var(--accent,#2c6a4d);color:var(--accent-ink,#fff)}.voice{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:13px;color:var(--ink-soft,#52645a);margin-top:-8px}.seg{display:inline-flex;border:1.5px solid var(--line,#d3dacd);border-radius:999px;overflow:hidden}.seg button{border:0;border-radius:0;background:transparent;color:inherit;font:inherit;font-weight:500;font-size:13px;padding:6px 14px;cursor:pointer}.seg button[aria-pressed=true]{background:var(--accent,#2c6a4d);color:var(--accent-ink,#fff)}";
 
-  function setLang(l) {
-    lang = l;
-    try { localStorage.setItem(LANG_KEY, l); } catch (e) {}
-    langKn.setAttribute("aria-pressed", String(l === "kn-IN"));
-    langEn.setAttribute("aria-pressed", String(l === "en-IN"));
-  }
+  function setupVoice() {
+    var input = document.getElementById("q");
+    var form = document.getElementById("searchForm");
+    if (!input || !form) return;
 
-  if (!SR) {
-    micBtn.hidden = true;
-    voiceRow.hidden = false;
-    document.getElementById("langSeg").hidden = true;
-    voiceMsg.textContent = "Voice search needs Chrome or Safari. Typing works in every browser.";
-  } else {
+    if (!document.getElementById("sangati-voice-css")) {
+      var st = document.createElement("style");
+      st.id = "sangati-voice-css";
+      st.textContent = VOICE_CSS;
+      document.head.appendChild(st);
+    }
+
+    var micBtn = document.getElementById("micBtn");
+    if (!micBtn) {
+      micBtn = el("button", { type: "button", id: "micBtn", class: "mic", "aria-label": "Say the first line", "aria-pressed": "false" });
+      micBtn.innerHTML = MIC_SVG;
+    }
+    var wrap = input.parentNode && input.parentNode.classList.contains("field") ? input.parentNode : null;
+    if (!wrap) {
+      wrap = el("div", { class: "field" });
+      input.parentNode.insertBefore(wrap, input);
+      wrap.appendChild(input);
+    }
+    if (micBtn.parentNode !== wrap) wrap.appendChild(micBtn);
     micBtn.hidden = false;
+
+    var voiceRow = document.getElementById("voiceRow");
+    if (!voiceRow) {
+      voiceRow = el("div", { id: "voiceRow", class: "voice" });
+      voiceRow.innerHTML = '<div class="seg" id="langSeg" role="group" aria-label="Voice language"><button type="button" id="langKn" aria-pressed="true">ಕನ್ನಡ</button><button type="button" id="langEn" aria-pressed="false">English</button></div><span id="voiceMsg" aria-live="polite"></span>';
+      form.parentNode.insertBefore(voiceRow, form.nextSibling);
+    }
     voiceRow.hidden = false;
+
+    var voiceMsg = document.getElementById("voiceMsg");
+    var langSeg = document.getElementById("langSeg");
+    var langKn = document.getElementById("langKn");
+    var langEn = document.getElementById("langEn");
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var lang = "kn-IN";
+    try { lang = localStorage.getItem(LANG_KEY) || "kn-IN"; } catch (e) {}
+    var rec = null, listening = false;
+
+    function setLang(l) {
+      lang = l;
+      try { localStorage.setItem(LANG_KEY, l); } catch (e) {}
+      langKn.setAttribute("aria-pressed", String(l === "kn-IN"));
+      langEn.setAttribute("aria-pressed", String(l === "en-IN"));
+    }
     setLang(lang);
     langKn.addEventListener("click", function () { setLang("kn-IN"); });
     langEn.addEventListener("click", function () { setLang("en-IN"); });
+
+    var NO_SR = "This browser cannot take voice input. Open the site in Chrome (Android) or Safari (iPhone), or use the microphone key on your keyboard.";
+    if (!SR) { langSeg.hidden = true; voiceMsg.textContent = NO_SR; }
+
     micBtn.addEventListener("click", function () {
+      if (!SR) { voiceMsg.textContent = NO_SR; return; }
       if (listening) { try { rec.stop(); } catch (e) {} return; }
       var failed = false;
       rec = new SR();
@@ -229,12 +261,30 @@
     });
   }
 
+  // ---- Page wiring: search comes first so voice problems can never break it ----
+  var input = document.getElementById("q");
   var chips = document.getElementById("chips");
-  SUGGEST.forEach(function (t) {
-    var b = el("button", { type: "button", text: t });
-    b.addEventListener("click", function () { input.value = t; run(t); });
-    chips.appendChild(b);
-  });
+  if (chips) {
+    SUGGEST.forEach(function (t) {
+      var b = el("button", { type: "button", text: t });
+      b.addEventListener("click", function () { input.value = t; run(t); });
+      chips.appendChild(b);
+    });
+  }
   document.getElementById("searchForm").addEventListener("submit", function (e) { e.preventDefault(); run(input.value); });
   document.getElementById("results").appendChild(el("div", { class: "empty", text: "Type a first line above, tap the mic to say it, or tap one of the examples." }));
+
+  try { setupVoice(); } catch (err) {
+    var vm = document.getElementById("voiceMsg");
+    if (vm) vm.textContent = "Voice input could not start. You can type the line instead.";
+  }
+
+  // Small version line at the bottom, so it is easy to see which files are live.
+  var ver = document.getElementById("ver");
+  if (!ver) {
+    ver = el("p", { class: "note", id: "ver" });
+    var mainEl = document.querySelector("main");
+    if (mainEl) mainEl.appendChild(ver);
+  }
+  ver.textContent = "Sangati v4 · voice input " + (window.SpeechRecognition || window.webkitSpeechRecognition ? "available" : "not available in this browser");
 })();
