@@ -242,7 +242,7 @@ a.play { color: var(--accent); font-weight: 600; text-decoration: none; border-b
   <aside class="beta" aria-label="Beta notice">
     <span class="pill">Beta</span>
     <p>You are among the first to try Sangati. Search runs live on YouTube, so a few singer names may be wrong. Tell us what you find.</p>
-    <a id="feedback" href="#" target="_blank" rel="noopener noreferrer" hidden>Send feedback</a>
+    <a id="feedback" href="#" target="_blank" rel="noopener noreferrer" hidden>Send feedback on WhatsApp</a>
   </aside>
 </main>
 
@@ -256,7 +256,7 @@ a.play { color: var(--accent); font-weight: 600; text-decoration: none; border-b
 <script>
 (function () {
   // Paste a Google Form, WhatsApp or email link between the quotes to show a "Send feedback" link. Leave it empty to hide it.
-  var FEEDBACK_URL = "";
+  var FEEDBACK_URL = "https://wa.me/919845509006?text=" + encodeURIComponent("Sangati feedback: ");
   var fb = document.getElementById("feedback");
   if (fb && FEEDBACK_URL) { fb.href = FEEDBACK_URL; fb.hidden = false; }
 
