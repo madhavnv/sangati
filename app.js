@@ -6,6 +6,56 @@
   function saveCache() { try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch (e) {} }
   var reqNo = 0;
 
+  // Popular singers, in the order they should appear. Edit this list: one name per line, best-known first.
+  // Spelling can be loose ("Vidyabhushan" matches "Sri Vidyabhushana"). Anyone not listed comes after, by views.
+  var PRIORITY = [
+    "Vidyabhushana",
+    "Bhimsen Joshi",
+    "Gangubai Hangal",
+    "M S Subbulakshmi",
+    "Vasundhara Das",
+    "Sanjay Subrahmanyan",
+    "T M Krishna",
+    "Yesudas",                // K J Yesudas
+    "Sudha Raghunathan",
+    "Venkatesh Kumar",        // Pandit Venkatesh Kumar
+    "Trichur Brothers",
+    "Abhishek Raghuram",
+    "Sai Brothers",
+    "Malladi Brothers",
+    "Raichur Sheshagiri",     // Raichur Sheshagiri Das
+    "Anantha Kulkarni",
+    "Mysore Ramachandra",     // Mysore Ramachandrachar
+    "Divya Giridhar",
+    "Rahul Vellal",
+    "Chaya"
+  ];
+  var HON = ["pandit", "pt", "dr", "smt", "shri", "sri", "sree", "vidwan", "vidushi", "kum", "kumari", "prof", "sangeetha", "kalanidhi", "late"];
+  function loose(w) {
+    return w.toLowerCase().replace(/(aa|ah)/g, "a").replace(/(ee|ii)/g, "i").replace(/(oo|uu)/g, "u")
+      .replace(/([bcdgjkpstv])h/g, "$1").replace(/h/g, "").replace(/w/g, "v").replace(/(.)\1+/g, "$1");
+  }
+  function nameToks(name) {
+    var t = hasKannada(name) ? translit(name) : name;
+    return t.split(/[^A-Za-z]+/).filter(function (x) { return x.length > 0 && HON.indexOf(x.toLowerCase()) === -1; }).map(loose);
+  }
+  function tokMatch(a, b) { return a === b || (a.length >= 5 && b.length >= 5 && (a.indexOf(b) === 0 || b.indexOf(a) === 0)); }
+  var PRI = PRIORITY.map(nameToks);
+  function rankOf(name) {
+    var toks = nameToks(name);
+    if (!toks.length) return PRI.length;
+    for (var i = 0; i < PRI.length; i++) {
+      var p = PRI[i];
+      if (p.length && p.every(function (pt) { return toks.some(function (t) { return tokMatch(pt, t); }); })) return i;
+    }
+    return PRI.length;
+  }
+  function sortSingers(list) {
+    return list.map(function (s, i) { return { s: s, r: rankOf(s.name), i: i }; })
+      .sort(function (a, b) { return a.r - b.r || a.i - b.i; })
+      .map(function (x) { return x.s; });
+  }
+
   function el(tag, props, kids) {
     var n = document.createElement(tag);
     Object.keys(props || {}).forEach(function (k) {
@@ -20,7 +70,7 @@
     return n + " views";
   }
   function ytUrl(q) { return "https://www.youtube.com/results?search_query=" + encodeURIComponent(q + " devaranama"); }
-  function hasKannada(s) { return /[\u0c80-\u0cff]/.test(s); }
+  function hasKannada(s) { return /[ಀ-೿]/.test(s); }
 
   // Kannada script to loose Roman spelling, e.g. ಭಾಗ್ಯದ ಲಕ್ಷ್ಮೀ ಬಾರಮ್ಮ -> bhagyada lakshmi baramma
   var CONS = { "ಕ": "k", "ಖ": "kh", "ಗ": "g", "ಘ": "gh", "ಙ": "ng", "ಚ": "ch", "ಛ": "chh", "ಜ": "j", "ಝ": "jh", "ಞ": "nj", "ಟ": "t", "ಠ": "th", "ಡ": "d", "ಢ": "dh", "ಣ": "n", "ತ": "t", "ಥ": "th", "ದ": "d", "ಧ": "dh", "ನ": "n", "ಪ": "p", "ಫ": "ph", "ಬ": "b", "ಭ": "bh", "ಮ": "m", "ಯ": "y", "ರ": "r", "ಱ": "r", "ಲ": "l", "ಳ": "l", "ವ": "v", "ಶ": "sh", "ಷ": "sh", "ಸ": "s", "ಹ": "h" };
@@ -116,7 +166,7 @@
   function render(q, data, used) {
     var box = document.getElementById("results");
     box.textContent = "";
-    var singers = data.singers || [];
+    var singers = sortSingers(data.singers || []);
     if (!singers.length) {
       box.appendChild(el("div", { class: "empty" }, [
         el("p", { text: "No recordings found for “" + q + "”. Try fewer words or another spelling." }),
