@@ -98,7 +98,7 @@
     "details.lyr{border:1px solid var(--line,#d3dacd);border-radius:10px;margin:14px 0 0;background:var(--surface,#f8faf5)}" +
     "details.lyr summary{cursor:pointer;padding:12px 14px;font-weight:600;color:var(--accent,#2c6a4d)}" +
     ".lyr-body{padding:0 14px 14px}.lyr-body h3{font-family:var(--display,Georgia,serif);font-weight:400;font-size:20px;margin:4px 0 2px}" +
-    ".lyr-body p{margin:6px 0}.lyr-lines{white-space:pre-wrap;font-family:var(--kn,serif);font-size:17px;line-height:1.9;margin:10px 0;overflow-wrap:anywhere}" +
+    ".lyr-body p{margin:6px 0}" +
     ".lyr-note{font-size:12px;color:var(--ink-soft,#52645a)}.lyr-note a{color:var(--accent,#2c6a4d);font-weight:600}";
 
   // Kannada script to loose Roman spelling, e.g. ಭಾಗ್ಯದ ಲಕ್ಷ್ಮೀ ಬಾರಮ್ಮ -> bhagyada lakshmi baramma
@@ -176,41 +176,40 @@
 
   function renderLyrics(body, j, q) {
     body.textContent = "";
-    if (!j.recognised) {
-      body.appendChild(el("p", { class: "meta", text: "This song could not be identified with confidence, so no lyrics or meaning are shown." }));
+    if (!j.recognised || (!j.meaning && !j.meaningKn)) {
+      body.appendChild(el("p", { class: "meta", text: "The meaning of this song could not be prepared with confidence, so nothing is shown." }));
     } else {
       if (j.title) body.appendChild(el("h3", { text: j.title }));
-      if (j.composer) body.appendChild(el("p", { class: "meta", text: "Composed by " + j.composer }));
-      if (j.meaning) body.appendChild(el("p", { text: j.meaning }));
-      if (j.lyrics) body.appendChild(el("div", { class: "lyr-lines", text: j.lyrics }));
-      else body.appendChild(el("p", { class: "meta", text: "Lyrics are not shown because the exact words could not be confirmed." }));
+      if (j.composer) body.appendChild(el("p", { class: "meta", text: "Composer: " + j.composer + " (as named in the video titles)" }));
+      if (j.meaning) body.appendChild(el("p", {}, [el("strong", { text: "English: " }), document.createTextNode(j.meaning)]));
+      if (j.meaningKn) body.appendChild(el("p", { style: "font-family:var(--kn,serif);font-size:17px;line-height:1.8" }, [el("strong", { text: "ಕನ್ನಡ: " }), document.createTextNode(j.meaningKn)]));
     }
     body.appendChild(el("p", { class: "lyr-note" }, [
       document.createTextNode("Prepared by AI and not yet checked by a person, so it may contain mistakes. "),
-      el("a", { href: FEEDBACK_WA + encodeURIComponent("Sangati lyrics correction for “" + q + "”: "), target: "_blank", rel: "noopener noreferrer", text: "Report a correction" })
+      el("a", { href: FEEDBACK_WA + encodeURIComponent("Sangati meaning correction for “" + q + "”: "), target: "_blank", rel: "noopener noreferrer", text: "Report a correction" })
     ]));
   }
 
   function lyricsBlock(q) {
     var d = el("details", { class: "lyr" });
     var body = el("div", { class: "lyr-body" });
-    d.appendChild(el("summary", { text: "Lyrics and meaning" }));
+    d.appendChild(el("summary", { text: "Meaning · ಅರ್ಥ" }));
     d.appendChild(body);
     var loaded = false;
     d.addEventListener("toggle", function () {
       if (!d.open || loaded) return;
       loaded = true;
       body.textContent = "";
-      body.appendChild(el("p", { class: "meta" }, [el("span", { class: "spin" }), document.createTextNode("Preparing lyrics and meaning…")]));
+      body.appendChild(el("p", { class: "meta" }, [el("span", { class: "spin" }), document.createTextNode("Preparing the meaning…")]));
       fetch("/api/lyrics?q=" + encodeURIComponent(q)).then(function (r) {
         return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, j: j }; });
       }).then(function (x) {
-        if (!x.ok) { var e = new Error(x.j.error || "Could not load the lyrics."); e.shown = true; throw e; }
+        if (!x.ok) { var e = new Error(x.j.error || "Could not load the meaning."); e.shown = true; throw e; }
         renderLyrics(body, x.j, q);
       }).catch(function (err) {
         loaded = false;
         body.textContent = "";
-        body.appendChild(el("p", { class: "meta", text: err && err.shown ? err.message : "Could not load the lyrics. Close this and open it again to retry." }));
+        body.appendChild(el("p", { class: "meta", text: err && err.shown ? err.message : "Could not load the meaning. Close this and open it again to retry." }));
       });
     });
     return d;
