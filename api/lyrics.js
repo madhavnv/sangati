@@ -11,10 +11,12 @@ import * as db from "./_db.js";
 export const config = { maxDuration: 60 };
 
 const BASE = process.env.GEMINI_API_BASE || "https://generativelanguage.googleapis.com/v1beta";
-const MODEL = process.env.LYRICS_MODEL || "gemini-3.8-flash";
+const MODEL = process.env.LYRICS_MODEL || "gemini-3.5-flash-lite";
 const DAILY_LIMIT = Number(process.env.LYRICS_DAILY_LIMIT) || 100;
 const WITH_TEXT = process.env.LYRICS_SHOW_TEXT === "1";
-const FALLBACKS = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"];
+const FALLBACKS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash", "gemini-3.8-flash"];
+const TRY_MS = Number(process.env.LYRICS_TIMEOUT_MS) || 18000; // wait this long for each model
+const BUDGET_MS = 45000; // stop trying more models after this long, before the 60 second limit
 const KEEP_SECONDS = 365 * 24 * 3600;
 
 const SYSTEM = "You are an expert in Haridasa sahitya and Kannada devotional songs (devaranama), including the compositions of Purandara Dasa, Kanaka Dasa, Vijaya Dasa, Gopala Dasa, Jagannatha Dasa and others. " +
@@ -75,16 +77,26 @@ export default async function handler(req, res) {
     // Try the chosen model first, then other current models if Google says it does not know that name.
     const models = [MODEL, ...FALLBACKS.filter((m) => m !== MODEL)];
     let j = {}, last = "";
+    const started = Date.now();
     for (const m of models) {
-      const r = await fetch(BASE + "/models/" + encodeURIComponent(m) + ":generateContent", {
-        method: "POST",
-        headers: { "x-goog-api-key": apiKey, "content-type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM }] },
-          contents: [{ role: "user", parts: [{ text: prompt(q) }] }],
-          generationConfig: { responseMimeType: "application/json", maxOutputTokens: 4000 }
-        })
-      });
+      if (Date.now() - started > BUDGET_MS - TRY_MS) break;
+      let r;
+      try {
+        r = await fetch(BASE + "/models/" + encodeURIComponent(m) + ":generateContent", {
+          method: "POST",
+          headers: { "x-goog-api-key": apiKey, "content-type": "application/json" },
+          signal: AbortSignal.timeout(TRY_MS),
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: SYSTEM }] },
+            contents: [{ role: "user", parts: [{ text: prompt(q) }] }],
+            generationConfig: { responseMimeType: "application/json", maxOutputTokens: WITH_TEXT ? 4000 : 2000 }
+          })
+        });
+      } catch (e) {
+        console.error("Gemini " + m + " did not answer in time or could not be reached: " + (e && e.name));
+        last = "(" + m + " did not answer in time)";
+        continue; // try the next, faster model
+      }
       j = await r.json().catch(() => ({}));
       if (r.ok) { last = ""; break; }
       const why = (j && j.error && j.error.message ? String(j.error.message) : "").replace(/\s+/g, " ").slice(0, 200);
@@ -93,7 +105,10 @@ export default async function handler(req, res) {
       last = "(" + m + ", HTTP " + r.status + (why ? ": " + why : "") + ")";
       if (r.status !== 404) break; // a bad key or a bad request will not be fixed by another model
     }
-    if (last) return res.status(502).json({ error: "The lyrics helper is not available right now. " + last });
+    if (last) {
+      await db.cmd(["DECR", counter]).catch(() => {}); // a failed try should not use up the daily limit
+      return res.status(502).json({ error: "The lyrics helper is not available right now. " + last });
+    }
 
     const o = parseJson(answerText(j));
     if (!o) return res.status(502).json({ error: "Could not prepare the lyrics. Try again later." });
