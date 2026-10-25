@@ -14,6 +14,7 @@ const BASE = process.env.GEMINI_API_BASE || "https://generativelanguage.googleap
 const MODEL = process.env.LYRICS_MODEL || "gemini-3.8-flash";
 const DAILY_LIMIT = Number(process.env.LYRICS_DAILY_LIMIT) || 100;
 const WITH_TEXT = process.env.LYRICS_SHOW_TEXT === "1";
+const FALLBACKS = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"];
 const KEEP_SECONDS = 365 * 24 * 3600;
 
 const SYSTEM = "You are an expert in Haridasa sahitya and Kannada devotional songs (devaranama), including the compositions of Purandara Dasa, Kanaka Dasa, Vijaya Dasa, Gopala Dasa, Jagannatha Dasa and others. " +
@@ -71,18 +72,28 @@ export default async function handler(req, res) {
     if (n === 1) await db.cmd(["EXPIRE", counter, 172800]);
     if (n > DAILY_LIMIT) return res.status(429).json({ error: "Lyrics for new songs are paused for today. Songs opened before still work. Please try again tomorrow." });
 
-    const r = await fetch(BASE + "/models/" + encodeURIComponent(MODEL) + ":generateContent", {
-      method: "POST",
-      headers: { "x-goog-api-key": apiKey, "content-type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM }] },
-        contents: [{ role: "user", parts: [{ text: prompt(q) }] }],
-        generationConfig: { responseMimeType: "application/json", maxOutputTokens: 4000 }
-      })
-    });
-    const j = await r.json().catch(() => ({}));
-    if (r.status === 429) return res.status(429).json({ error: "The free lyrics limit is used up for now. Please try again later." });
-    if (!r.ok) return res.status(502).json({ error: "The lyrics helper is not available right now. Try again later." });
+    // Try the chosen model first, then other current models if Google says it does not know that name.
+    const models = [MODEL, ...FALLBACKS.filter((m) => m !== MODEL)];
+    let j = {}, last = "";
+    for (const m of models) {
+      const r = await fetch(BASE + "/models/" + encodeURIComponent(m) + ":generateContent", {
+        method: "POST",
+        headers: { "x-goog-api-key": apiKey, "content-type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: SYSTEM }] },
+          contents: [{ role: "user", parts: [{ text: prompt(q) }] }],
+          generationConfig: { responseMimeType: "application/json", maxOutputTokens: 4000 }
+        })
+      });
+      j = await r.json().catch(() => ({}));
+      if (r.ok) { last = ""; break; }
+      const why = (j && j.error && j.error.message ? String(j.error.message) : "").replace(/\s+/g, " ").slice(0, 200);
+      console.error("Gemini " + m + " failed: HTTP " + r.status + " " + why);
+      if (r.status === 429) return res.status(429).json({ error: "The free lyrics limit is used up for now. Please try again later." });
+      last = "(" + m + ", HTTP " + r.status + (why ? ": " + why : "") + ")";
+      if (r.status !== 404) break; // a bad key or a bad request will not be fixed by another model
+    }
+    if (last) return res.status(502).json({ error: "The lyrics helper is not available right now. " + last });
 
     const o = parseJson(answerText(j));
     if (!o) return res.status(502).json({ error: "Could not prepare the lyrics. Try again later." });
