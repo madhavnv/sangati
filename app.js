@@ -1,6 +1,8 @@
 (function () {
   var SUGGEST = ["bhagyada lakshmi baramma", "krishna nee begane baro", "jagadoddharana adisidale yashode", "tamburi meetidava"];
-  var CACHE_KEY = "sangati-search-v3", LANG_KEY = "sangati-voice-lang", TTL = 7 * 24 * 3600 * 1000;
+  var CACHE_KEY = "sangati-search-v4", LANG_KEY = "sangati-voice-lang", VOTED_KEY = "sangati-voted", TTL = 24 * 3600 * 1000;
+  var FEEDBACK_WA = "https://wa.me/919845509006?text=";
+  var pendingDeep = null;
   var cache = {};
   try { cache = JSON.parse(localStorage.getItem(CACHE_KEY) || "{}") || {}; } catch (e) { cache = {}; }
   function saveCache() { try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch (e) {} }
@@ -70,7 +72,34 @@
     return n + " views";
   }
   function ytUrl(q) { return "https://www.youtube.com/results?search_query=" + encodeURIComponent(q + " devaranama"); }
-  function hasKannada(s) { return /[ಀ-೿]/.test(s); }
+  function hasKannada(s) { return /[\u0C80-\u0CFF]/.test(s); }
+
+  // ---- Share links: ?q=<song>&s=<singer>&v=<video id> ----
+  function shareLink(q, singer, vid) {
+    var u = location.href.split(/[?#]/)[0] + "?q=" + encodeURIComponent(q);
+    if (singer) u += "&s=" + encodeURIComponent(singer);
+    if (vid) u += "&v=" + encodeURIComponent(vid);
+    return u;
+  }
+  function doShare(text, url) {
+    if (navigator.share) { navigator.share({ title: "Sangati", text: text, url: url }).catch(function () {}); return; }
+    window.open("https://wa.me/?text=" + encodeURIComponent(text + "\n" + url), "_blank", "noopener");
+  }
+
+  // ---- Votes ----
+  function getVoted() { try { return JSON.parse(localStorage.getItem(VOTED_KEY) || "{}") || {}; } catch (e) { return {}; } }
+  function setVoted(id, dir) { var o = getVoted(); o[id] = dir; try { localStorage.setItem(VOTED_KEY, JSON.stringify(o)); } catch (e) {} }
+  function postVote(id, dir) {
+    return fetch("/api/vote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: id, v: dir }) })
+      .then(function (r) { if (!r.ok) throw new Error("vote"); });
+  }
+
+  var EXTRA_CSS = ".vctl .vote{font-size:13px}.vctl .vnote{font-size:13px;color:var(--ink-soft,#52645a);align-self:center}" +
+    "details.lyr{border:1px solid var(--line,#d3dacd);border-radius:10px;margin:14px 0 0;background:var(--surface,#f8faf5)}" +
+    "details.lyr summary{cursor:pointer;padding:12px 14px;font-weight:600;color:var(--accent,#2c6a4d)}" +
+    ".lyr-body{padding:0 14px 14px}.lyr-body h3{font-family:var(--display,Georgia,serif);font-weight:400;font-size:20px;margin:4px 0 2px}" +
+    ".lyr-body p{margin:6px 0}.lyr-lines{white-space:pre-wrap;font-family:var(--kn,serif);font-size:17px;line-height:1.9;margin:10px 0;overflow-wrap:anywhere}" +
+    ".lyr-note{font-size:12px;color:var(--ink-soft,#52645a)}.lyr-note a{color:var(--accent,#2c6a4d);font-weight:600}";
 
   // Kannada script to loose Roman spelling, e.g. ಭಾಗ್ಯದ ಲಕ್ಷ್ಮೀ ಬಾರಮ್ಮ -> bhagyada lakshmi baramma
   var CONS = { "ಕ": "k", "ಖ": "kh", "ಗ": "g", "ಘ": "gh", "ಙ": "ng", "ಚ": "ch", "ಛ": "chh", "ಜ": "j", "ಝ": "jh", "ಞ": "nj", "ಟ": "t", "ಠ": "th", "ಡ": "d", "ಢ": "dh", "ಣ": "n", "ತ": "t", "ಥ": "th", "ದ": "d", "ಧ": "dh", "ನ": "n", "ಪ": "p", "ಫ": "ph", "ಬ": "b", "ಭ": "bh", "ಮ": "m", "ಯ": "y", "ರ": "r", "ಱ": "r", "ಲ": "l", "ಳ": "l", "ವ": "v", "ಶ": "sh", "ಷ": "sh", "ಸ": "s", "ಹ": "h" };
@@ -99,7 +128,7 @@
     var k = q.toLowerCase().replace(/\s+/g, " ").trim();
     var hit = cache[k];
     if (hit && Date.now() - hit.t < TTL) return Promise.resolve(hit.data);
-    return fetch("/api/search?q=" + encodeURIComponent(q) + "&v=3").then(function (r) {
+    return fetch("/api/search?q=" + encodeURIComponent(q) + "&v=4").then(function (r) {
       return r.text().then(function (txt) {
         var j = {};
         try { j = JSON.parse(txt); } catch (e) {}
@@ -125,11 +154,74 @@
     });
   }
 
-  function singerRow(s) {
+  function addVote(ctl, v) {
+    var already = getVoted()[v.id];
+    var good = el("button", { type: "button", class: "ghost vote", text: "👍 Good version" + (v.up ? " (" + v.up + ")" : "") });
+    var bad = el("button", { type: "button", class: "ghost vote", text: "👎 Wrong song" });
+    var note = el("span", { class: "vnote" });
+    function done(msg) { good.disabled = true; bad.disabled = true; note.textContent = msg; }
+    if (already) done("Thanks for your vote");
+    function cast(dir) {
+      done("Saving…");
+      postVote(v.id, dir).then(function () {
+        setVoted(v.id, dir);
+        if (dir === 1) { v.up = (v.up || 0) + 1; good.textContent = "👍 Good version (" + v.up + ")"; }
+        note.textContent = "Thanks for your vote";
+      }).catch(function () { good.disabled = false; bad.disabled = false; note.textContent = "Could not save. Try again."; });
+    }
+    good.addEventListener("click", function () { cast(1); });
+    bad.addEventListener("click", function () { cast(-1); });
+    ctl.appendChild(good); ctl.appendChild(bad); ctl.appendChild(note);
+  }
+
+  function renderLyrics(body, j, q) {
+    body.textContent = "";
+    if (!j.recognised) {
+      body.appendChild(el("p", { class: "meta", text: "This song could not be identified with confidence, so no lyrics or meaning are shown." }));
+    } else {
+      if (j.title) body.appendChild(el("h3", { text: j.title }));
+      if (j.composer) body.appendChild(el("p", { class: "meta", text: "Composed by " + j.composer }));
+      if (j.meaning) body.appendChild(el("p", { text: j.meaning }));
+      if (j.lyrics) body.appendChild(el("div", { class: "lyr-lines", text: j.lyrics }));
+      else body.appendChild(el("p", { class: "meta", text: "Lyrics are not shown because the exact words could not be confirmed." }));
+    }
+    body.appendChild(el("p", { class: "lyr-note" }, [
+      document.createTextNode("Prepared by AI and not yet checked by a person, so it may contain mistakes. "),
+      el("a", { href: FEEDBACK_WA + encodeURIComponent("Sangati lyrics correction for “" + q + "”: "), target: "_blank", rel: "noopener noreferrer", text: "Report a correction" })
+    ]));
+  }
+
+  function lyricsBlock(q) {
+    var d = el("details", { class: "lyr" });
+    var body = el("div", { class: "lyr-body" });
+    d.appendChild(el("summary", { text: "Lyrics and meaning" }));
+    d.appendChild(body);
+    var loaded = false;
+    d.addEventListener("toggle", function () {
+      if (!d.open || loaded) return;
+      loaded = true;
+      body.textContent = "";
+      body.appendChild(el("p", { class: "meta" }, [el("span", { class: "spin" }), document.createTextNode("Preparing lyrics and meaning…")]));
+      fetch("/api/lyrics?q=" + encodeURIComponent(q)).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, j: j }; });
+      }).then(function (x) {
+        if (!x.ok) { var e = new Error(x.j.error || "Could not load the lyrics."); e.shown = true; throw e; }
+        renderLyrics(body, x.j, q);
+      }).catch(function (err) {
+        loaded = false;
+        body.textContent = "";
+        body.appendChild(el("p", { class: "meta", text: err && err.shown ? err.message : "Could not load the lyrics. Close this and open it again to retry." }));
+      });
+    });
+    return d;
+  }
+
+  function singerRow(s, ctx) {
     var li = el("li", {});
+    li.setAttribute("data-singer", s.name);
     var top = el("div", { class: "row-top" });
     var best = s.videos[0];
-    top.appendChild(el("span", { class: "name", text: s.name }, [el("small", { text: fmtViews(best.views) + (s.videos.length > 1 ? " · " + s.videos.length + " recordings" : "") })]));
+    top.appendChild(el("span", { class: "name", text: s.name }, [el("small", { class: "vt", text: best.title }), el("small", { text: fmtViews(best.views) + (s.videos.length > 1 ? " · " + s.videos.length + " recordings" : "") })]));
     var btn = el("button", { type: "button", class: "play-btn", text: "▶ Play" });
     top.appendChild(btn);
     li.appendChild(top);
@@ -151,19 +243,26 @@
         nxt.addEventListener("click", function () { show((idx + 1) % s.videos.length); });
         ctl.appendChild(nxt);
       }
+      var sh = el("button", { type: "button", class: "ghost", text: "Share" });
+      sh.addEventListener("click", function () {
+        doShare("🙏 Hear " + s.name + " sing “" + ctx.q + "” on Sangati", shareLink(ctx.q, s.name, v.id));
+      });
+      ctl.appendChild(sh);
+      if (ctx.votesOn) addVote(ctl, v);
       var close = el("button", { type: "button", class: "ghost", text: "Close" });
       close.addEventListener("click", function () { slot.textContent = ""; li.className = ""; btn.hidden = false; });
       ctl.appendChild(close);
       slot.appendChild(frame);
-      slot.appendChild(el("p", { class: "vmeta", text: v.title + " · " + v.channel + " · " + fmtViews(v.views) }));
+      slot.appendChild(el("p", { class: "vmeta", text: s.name + " · " + v.title + " · " + v.channel + " · " + fmtViews(v.views) }));
       slot.appendChild(ctl);
       btn.hidden = true;
     }
     btn.addEventListener("click", function () { show(0); });
+    li._show = show;
     return li;
   }
 
-  function render(q, data, used) {
+  function render(q, data, used, deep) {
     var box = document.getElementById("results");
     box.textContent = "";
     var singers = sortSingers(data.singers || []);
@@ -176,13 +275,32 @@
     }
     var meta = used && used !== q ? "Searched as “" + used + "”. Pick a singer to play their version." : "Pick a singer to play their version.";
     if (data.relaxed) meta += " Showing recordings that match " + data.matched + " of your " + data.words + " words.";
+    var ctx = { q: q, votesOn: !!data.votes };
+    var shareSong = el("button", { type: "button", class: "ghost", text: "Share this song" });
+    shareSong.addEventListener("click", function () { doShare("🙏 Hear “" + q + "” sung by many singers on Sangati", shareLink(q)); });
     box.appendChild(el("article", { class: "card" }, [
       el("h2", { text: q }),
       el("p", { class: "meta", text: meta }),
+      data.lyrics ? lyricsBlock(used || q) : null,
       el("p", { class: "count", text: singers.length + (singers.length === 1 ? " singer" : " singers") }),
-      el("ul", { class: "singers" }, singers.map(singerRow)),
-      el("div", { class: "card-foot" }, [el("a", { class: "play", href: ytUrl(q), target: "_blank", rel: "noopener noreferrer", text: "Search YouTube yourself ↗" })])
+      el("ul", { class: "singers" }, singers.map(function (s) { return singerRow(s, ctx); })),
+      el("div", { class: "card-foot" }, [el("a", { class: "play", href: ytUrl(q), target: "_blank", rel: "noopener noreferrer", text: "Search YouTube yourself ↗" }), shareSong])
     ]));
+
+    // Opened from a shared link: open that singer's recording
+    if (deep && (deep.v || deep.s)) {
+      var lis = box.querySelectorAll("ul.singers li"), hitS = -1, hitV = 0;
+      singers.forEach(function (s, i) {
+        s.videos.forEach(function (v, j) { if (hitS < 0 && deep.v && v.id === deep.v) { hitS = i; hitV = j; } });
+      });
+      if (hitS < 0 && deep.s) {
+        singers.forEach(function (s, i) { if (hitS < 0 && s.name.toLowerCase() === deep.s.toLowerCase()) { hitS = i; hitV = 0; } });
+      }
+      if (hitS >= 0 && lis[hitS] && lis[hitS]._show) {
+        lis[hitS]._show(hitV);
+        try { lis[hitS].scrollIntoView({ block: "center" }); } catch (e) {}
+      }
+    }
   }
 
   function run(q) {
@@ -190,13 +308,15 @@
     var box = document.getElementById("results");
     if (q.length < 3) { box.textContent = ""; box.appendChild(el("div", { class: "empty", text: "Type or say at least a few letters of the first line." })); return; }
     var me = ++reqNo;
+    var deep = pendingDeep; pendingDeep = null;
+    if (!deep) { try { history.replaceState(null, "", location.pathname + "?q=" + encodeURIComponent(q)); } catch (e) {} }
     var go = document.getElementById("goBtn");
     if (go) go.disabled = true;
     box.textContent = "";
     box.appendChild(el("div", { class: "empty" }, [el("span", { class: "spin" }), document.createTextNode("Searching YouTube for singers…")]));
     searchSmart(q).then(function (res) {
       if (me !== reqNo) return;
-      render(q, res.data, res.used);
+      render(q, res.data, res.used, deep);
     }).catch(function (err) {
       if (me !== reqNo) return;
       var msg = err && err.name === "TypeError" ? "Could not reach the server. Check your internet connection and try again." : (err && err.message) || "Search failed. Try again.";
@@ -324,10 +444,26 @@
   document.getElementById("searchForm").addEventListener("submit", function (e) { e.preventDefault(); run(input.value); });
   document.getElementById("results").appendChild(el("div", { class: "empty", text: "Type a first line above, tap the mic to say it, or tap one of the examples." }));
 
+  var xs = document.createElement("style");
+  xs.id = "sangati-extra-css";
+  xs.textContent = EXTRA_CSS;
+  document.head.appendChild(xs);
+
   try { setupVoice(); } catch (err) {
     var vm = document.getElementById("voiceMsg");
     if (vm) vm.textContent = "Voice input could not start. You can type the line instead.";
   }
+
+  // Opened from a shared link (?q=...&s=...&v=...): run that search straight away
+  try {
+    var sp = new URLSearchParams(location.search);
+    var dq = (sp.get("q") || "").trim();
+    if (dq.length >= 3) {
+      input.value = dq;
+      pendingDeep = { s: sp.get("s") || "", v: sp.get("v") || "" };
+      run(dq);
+    }
+  } catch (e) {}
 
   // Small version line at the bottom, so it is easy to see which files are live.
   var ver = document.getElementById("ver");
@@ -336,5 +472,5 @@
     var mainEl = document.querySelector("main");
     if (mainEl) mainEl.appendChild(ver);
   }
-  ver.textContent = "Sangati v4 · voice input " + (window.SpeechRecognition || window.webkitSpeechRecognition ? "available" : "not available in this browser");
+  ver.textContent = "Sangati v5 · voice input " + (window.SpeechRecognition || window.webkitSpeechRecognition ? "available" : "not available in this browser");
 })();
